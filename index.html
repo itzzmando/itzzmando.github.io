@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>For My Favorite Person</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+        
+        body {
+            background-color: #ffe6ea;
+            color: #5c4033;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+        }
+
+        h1 {
+            font-family: 'VT323', monospace;
+            font-size: 3.5rem;
+            color: #ff6b81;
+            text-shadow: 2px 2px #ffeb99;
+            margin-top: 20px;
+            margin-bottom: 5px;
+        }
+
+        .instructions {
+            font-size: 1.1rem;
+            color: #d16b80;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        /* --- NOTIFICATION POPUP --- */
+        #notification-popup {
+            position: fixed;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 20px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(255, 107, 129, 0.3);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border: 2px solid #ffb6c1;
+            transition: top 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            z-index: 100;
+            min-width: 250px;
+            text-align: left;
+        }
+        #notification-popup.show { top: 20px; }
+        .notif-icon { font-size: 1.8rem; background: #ffecf0; padding: 8px; border-radius: 50%; }
+        .notif-text { display: flex; flex-direction: column; }
+        .notif-title { font-size: 0.9rem; font-weight: bold; color: #555; }
+        .notif-msg { font-size: 1rem; color: #ff6b81; font-weight: 500; }
+
+        /* --- GAME STYLES --- */
+        #game-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 40px;
+        }
+
+        #game-container {
+            position: relative;
+            background-color: #7bcf5c;
+            border: 8px solid #ffce54;
+            border-radius: 8px;
+            box-shadow: 0px 8px 0px #e6b94c, 0px 12px 20px rgba(0,0,0,0.2);
+            width: 576px;
+            height: 384px;
+            image-rendering: pixelated;
+            cursor: crosshair;
+        }
+
+        canvas { display: block; }
+
+        /* HUD counter & Mute */
+        #hud {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 3px solid #ffce54;
+            border-radius: 8px;
+            padding: 4px 12px;
+            font-family: 'VT323', monospace;
+            font-size: 1.4rem;
+            color: #5c4033;
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        #mute-btn {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 3px solid #ffce54;
+            border-radius: 8px;
+            padding: 4px 8px;
+            font-size: 1.2rem;
+            cursor: pointer;
+            z-index: 5;
+        }
+
+        /* Hotbar */
+        #hotbar {
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 5px;
+            background-color: rgba(255, 255, 255, 0.7);
+            padding: 5px;
+            border-radius: 8px;
+            border: 3px solid #ffb6c1;
+            z-index: 5;
+        }
+        .slot {
+            width: 40px;
+            height: 40px;
+            background-color: #fff;
+            border: 3px solid #ccc;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+        }
+        .slot.active {
+            border-color: #ff6b81;
+            background-color: #ffe6ea;
+            transform: translateY(-5px);
+            box-shadow: 0px 4px 0px #ffb6c1;
+        }
+        .slot-num {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            font-family: 'VT323', monospace;
+            font-size: 0.9rem;
+            color: #888;
+        }
+        .slot canvas {
+            width: 24px;
+            height: 24px;
+            image-rendering: pixelated;
+        }
+
+        /* Dialogue Box */
+        #dialogue-box {
+            display: none;
+            position: absolute;
+            bottom: 60px;
+            left: 10px;
+            right: 10px;
+            background-color: #f7d5a3;
+            border: 4px solid #8b5a2b;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: 'VT323', monospace;
+            font-size: 1.4rem;
+            color: #4a2f1d;
+            box-shadow: inset 0px 0px 0px 3px #e6c18c;
+            text-align: left;
+            z-index: 10;
+            cursor: pointer;
+        }
+
+        /* Mobile Controls */
+        .controls {
+            display: grid;
+            grid-template-columns: 55px 55px 55px;
+            grid-template-rows: 55px 55px;
+            gap: 6px;
+            margin-top: 15px;
+            touch-action: manipulation;
+        }
+        .btn {
+            background-color: #ffb6c1;
+            border: 4px solid #ff6b81;
+            border-bottom-width: 8px;
+            border-radius: 10px;
+            color: white;
+            font-size: 1.6rem;
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+        }
+        .btn:active {
+            border-bottom-width: 4px;
+            transform: translateY(4px);
+        }
+        .up { grid-column: 2; grid-row: 1; }
+        .left { grid-column: 1; grid-row: 2; }
+        .down { grid-column: 2; grid-row: 2; }
+        .right { grid-column: 3; grid-row: 2; }
+
+        /* --- PHOTO GALLERY --- */
+        .gallery {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+            padding: 30px 20px;
+            background-color: #fff0f2;
+            border-top: 4px dashed #ffb6c1;
+        }
+        .polaroid {
+            background: white;
+            padding: 15px 15px 40px 15px;
+            border-radius: 2px;
+            box-shadow: 3px 5px 15px rgba(0,0,0,0.1);
+            width: 200px;
+            position: relative;
+        }
+        .polaroid img { width: 100%; height: 180px; background-color: #ddd; object-fit: cover; }
+        .polaroid p { position: absolute; bottom: 5px; left: 0; right: 0; font-family: 'VT323', monospace; font-size: 1.4rem; color: #5c4033; }
+    </style>
+</head>
+<body>
+
+    <div id="notification-popup">
+        <div class="notif-icon">💌</div>
+        <div class="notif-text">
+            <span class="notif-title">Messages now</span>
+            <span class="notif-msg" id="notif-content">I love you!</span>
+        </div>
+    </div>
+
+    <h1>To my Player 2...</h1>
+    <p class="instructions">Click/tap anywhere near your character to use your tool!</p>
+
+    <div id="game-wrapper">
+        <div id="game-container">
+            <button id="mute-btn" onclick="toggleMute()">🔊</button>
+            <div id="hud">Harvests: <span id="score">0</span></div>
+            
+            <canvas id="gameCanvas" width="576" height="384"></canvas>
+            
+            <div id="hotbar">
+                <div class="slot active" id="slot-0" onclick="selectTool(0)"><span class="slot-num">1</span><canvas id="icon-hoe" width="32" height="32"></canvas></div>
+                <div class="slot" id="slot-1" onclick="selectTool(1)"><span class="slot-num">2</span><canvas id="icon-water" width="32" height="32"></canvas></div>
+                <div class="slot" id="slot-2" onclick="selectTool(2)"><span class="slot-num">3</span><canvas id="icon-seed1" width="32" height="32"></canvas></div>
+                <div class="slot" id="slot-3" onclick="selectTool(3)"><span class="slot-num">4</span><canvas id="icon-seed2" width="32" height="32"></canvas></div>
+                <div class="slot" id="slot-4" onclick="selectTool(4)"><span class="slot-num">5</span><canvas id="icon-seed3" width="32" height="32"></canvas></div>
+            </div>
+
+            <div id="dialogue-box" onclick="this.style.display='none'">
+                * You've harvested your first 5 crops! <br>
+                "I love you endlessly!" <span style="color:#ff6b81">♥</span> <br>
+                <small style="font-size:0.9rem; color:#777;">(Tap to close)</small>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn up" id="btn-up">▲</button>
+            <button class="btn left" id="btn-left">◀</button>
+            <button class="btn down" id="btn-down">▼</button>
+            <button class="btn right" id="btn-right">▶</button>
+        </div>
+    </div>
+
+    <div class="gallery">
+        <div class="polaroid"><img src="photo1.jpg"><p>Silly times</p></div>
+        <div class="polaroid"><img src="photo3.jpg"><p>Jollibee Date!</p></div>
+        <div class="polaroid"><img src="photo2.jpg"><p>Giant Duck Winner!</p></div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreEl = document.getElementById('score');
+        const dialogueBox = document.getElementById('dialogue-box');
+
+        const CANVAS_W = 576, CANVAS_H = 384;
+        const TILE_SIZE = 32, PIXEL_SCALE = 4;
+
+        // --- RETRO SOUND SYNTHESIZER & MUTE ---
+        let audioCtx;
+        let isMuted = false;
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            document.getElementById('mute-btn').innerText = isMuted ? '🔇' : '🔊';
+        }
+
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        
+        function playTone(freq, type, duration, vol=0.05) {
+            if(!audioCtx || isMuted) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + duration);
+        }
+        
+        const sounds = {
+            till: () => playTone(150, 'square', 0.1, 0.05),
+            water: () => { playTone(400, 'sine', 0.15, 0.05); setTimeout(()=>playTone(300, 'sine', 0.15, 0.05), 100); },
+            plant: () => playTone(800, 'triangle', 0.1, 0.05),
+            harvest: () => { playTone(600, 'sine', 0.1, 0.08); setTimeout(()=>playTone(900, 'sine', 0.2, 0.08), 100); },
+            error: () => playTone(200, 'sawtooth', 0.1, 0.02),
+            notification: () => { playTone(1000, 'sine', 0.1, 0.05); setTimeout(()=>playTone(1500, 'sine', 0.3, 0.05), 150); }
+        };
+
+        // --- NOTIFICATION SYSTEM ---
+        const cuteMessages = [
+            "Just thinking about you! 🥰",
+            "You're my absolute favorite person.",
+            "I hope this game makes you smile!",
+            "Miss you! Can't wait to see you.",
+            "Just a reminder: I love you so much! ❤️",
+            "I love you so much endesneham!", 
+            "I'm so proud of you and can't wait to see what you do", 
+            "You're the best in the world",
+            "Mahal Kita <3"
+        ];
+        
+        function showNotification() {
+            initAudio(); 
+            const popup = document.getElementById('notification-popup');
+            const msgEl = document.getElementById('notif-content');
+            
+            msgEl.innerText = cuteMessages[Math.floor(Math.random() * cuteMessages.length)];
+            popup.classList.add('show');
+            sounds.notification();
+
+            setTimeout(() => { popup.classList.remove('show'); }, 5000);
+        }
+        setInterval(showNotification, 20000);
+
+        // --- PIXEL ART PALETTE ---
+        const colors = {
+            'T':'transparent', 'S':'#c68e58', 'B':'#212121', 'P':'#ffb6c1', 'Y':'#ffdf00', 'G':'#4caf50', 
+            'D':'#2e7d32', 'E':'#000000', 'W':'#ffffff', 'L':'#1976d2', 'R':'#e53935', 
+            '1':'#6d4c41', '2':'#5d4037', '3':'#3e2723', '4':'#2b1b18', 'A':'#a0a0a0', 'C':'#606060'
+        };
+
+        // --- HOTBAR PIXEL ART ICONS ---
+        const iconSprites = {
+            hoe: ['T T T T T T T T','T C C C T T T T','T C 1 C T T T T','T T 1 T T T T T','T T 1 T T T T T','T T 1 T T T T T','T T 1 T T T T T','T T 1 T T T T T'],
+            water: ['T T T T T T T T','T T T T T T T T','T T L L L T T T','T A L L L A T T','A L L L L L L T','T L L L L L T T','T L L L L L T T','T T L L L T T T'],
+            seed1: ['T T T T T T T T','T T T T T T T T','T T T 2 T T T T','T T 1 1 1 T T T','T 1 1 P 1 1 T T','T 1 P P P 1 T T','T 1 1 P 1 1 T T','T T 1 1 1 T T T'],
+            seed2: ['T T T T T T T T','T T T T T T T T','T T T 2 T T T T','T T 1 1 1 T T T','T 1 1 Y 1 1 T T','T 1 Y Y Y 1 T T','T 1 1 Y 1 1 T T','T T 1 1 1 T T T'],
+            seed3: ['T T T T T T T T','T T T T T T T T','T T T 2 T T T T','T T 1 1 1 T T T','T 1 1 R 1 1 T T','T 1 R R R 1 T T','T 1 1 R 1 1 T T','T T 1 1 1 T T T']
+        };
+
+        function drawIcon(canvasId, spriteArray) {
+            const c = document.getElementById(canvasId);
+            const ctxI = c.getContext('2d');
+            for (let r=0; r<8; r++) {
+                const pxs = spriteArray[r].split(' ');
+                for (let col=0; col<8; col++) {
+                    if (pxs[col] !== 'T') {
+                        ctxI.fillStyle = colors[pxs[col]];
+                        ctxI.fillRect(col * 4, r * 4, 4, 4); // Draw 32x32 scaled icons
+                    }
+                }
+            }
+        }
+
+        // Draw hotbar icons on load
+        drawIcon('icon-hoe', iconSprites.hoe);
+        drawIcon('icon-water', iconSprites.water);
+        drawIcon('icon-seed1', iconSprites.seed1);
+        drawIcon('icon-seed2', iconSprites.seed2);
+        drawIcon('icon-seed3', iconSprites.seed3);
+
+        const tools = ['hoe', 'water', 'seed_pink', 'seed_yellow', 'seed_berry'];
+        let currentTool = 0;
+        function selectTool(index) {
+            initAudio();
+            currentTool = index;
+            document.querySelectorAll('.slot').forEach(el => el.classList.remove('active'));
+            document.getElementById(`slot-${index}`).classList.add('active');
+        }
+
+        let grid = new Map(); 
+        let player = { x: 256, y: 160, speed: 1.5, direction: 'down', isMoving: false, animTimer: 0, animFrame: 0 };
+        let score = 0, dialogueTriggered = false, particles = [];
+
+        let hoverGridX = Math.floor((player.x+16)/TILE_SIZE);
+        let hoverGridY = Math.floor((player.y+16)/TILE_SIZE);
+        let isHoverValid = true;
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            let mx = (e.clientX - rect.left) * scaleX;
+            let my = (e.clientY - rect.top) * scaleY;
+            
+            hoverGridX = Math.floor(mx / TILE_SIZE);
+            hoverGridY = Math.floor(my / TILE_SIZE);
+            
+            let pCX = player.x + 16, pCY = player.y + 16;
+            let tCX = hoverGridX * TILE_SIZE + 16, tCY = hoverGridY * TILE_SIZE + 16;
+            isHoverValid = Math.hypot(tCX - pCX, tCY - pCY) <= (TILE_SIZE * 2);
+        });
+
+        canvas.addEventListener('mousedown', (e) => {
+            initAudio(); 
+            if (isHoverValid) performActionAt(hoverGridX, hoverGridY);
+            else sounds.error(); 
+        });
+
+        const sprites = {
+            player: {
+                down: [
+                    ['T T B B B B T T','T B S S S B T T','T S E S E S T T','T S S P S S T T','T T P P P T T T','T T Y P Y T T T','T T L T L T T T','T T E T E T T T'],
+                    ['T T B B B B T T','T B S S S B T T','T S E S E S T T','T S S P S S T T','T T P P P T T T','T T Y P Y T T T','T T E L L T T T','T T T T E T T T'],
+                    ['T T B B B B T T','T B S S S B T T','T S E S E S T T','T S S P S S T T','T T P P P T T T','T T Y P Y T T T','T T L L E T T T','T T E T T T T T']
+                ],
+                up: [
+                    ['T T B B B B T T','T B B B B B T T','T B B B B B T T','T T S B S T T T','T T P P P T T T','T T Y P Y T T T','T T L T L T T T','T T E T E T T T'],
+                    ['T T B B B B T T','T B B B B B T T','T B B B B B T T','T T S B S T T T','T T P P P T T T','T T Y P Y T T T','T T E L L T T T','T T T T E T T T'],
+                    ['T T B B B B T T','T B B B B B T T','T B B B B B T T','T T S B S T T T','T T P P P T T T','T T Y P Y T T T','T T L L E T T T','T T E T T T T T']
+                ],
+                left: [
+                    ['T T B B B T T T','T B B B S T T T','T B S E S T T T','T T S S S T T T','T T P P P T T T','T T Y P Y T T T','T T L T L T T T','T T E T E T T T'],
+                    ['T T B B B T T T','T B B B S T T T','T B S E S T T T','T T S S S T T T','T T P P P T T T','T T Y P Y T T T','T L L T T T T T','T E E T T T T T'],
+                    ['T T B B B T T T','T B B B S T T T','T B S E S T T T','T T S S S T T T','T T P P P T T T','T T Y P Y T T T','T T T T L L T T','T T T T E E T T']
+                ],
+                right: [
+                    ['T T T B B B T T','T T T S B B B T','T T T S E S B T','T T T S S S T T','T T T P P P T T','T T T Y P Y T T','T T T L T L T T','T T T E T E T T'],
+                    ['T T T B B B T T','T T T S B B B T','T T T S E S B T','T T T S S S T T','T T T P P P T T','T T T Y P Y T T','T T T T T L L T','T T T T T E E T'],
+                    ['T T T B B B T T','T T T S B B B T','T T T S E S B T','T T T S S S T T','T T T P P P T T','T T T Y P Y T T','T L L T T T T T','T E E T T T T T']
+                ]
+            },
+            dirt: {
+                tilled: ['1 1 1 2 1 1 1 1','1 2 1 1 1 2 1 1','1 1 1 1 1 1 1 2','2 1 1 2 1 1 1 1','1 1 1 1 1 2 1 1','1 2 1 1 1 1 1 1','1 1 1 2 1 1 1 2','1 1 1 1 1 1 1 1'],
+                watered: ['3 3 3 4 3 3 3 3','3 4 3 3 3 4 3 3','3 3 3 3 3 3 3 4','4 3 3 4 3 3 3 3','3 3 3 3 3 4 3 3','3 4 3 3 3 3 3 3','3 3 3 4 3 3 3 4','3 3 3 3 3 3 3 3']
+            },
+            plants: {
+                sprout: ['T T T T T T T T','T T T T T T T T','T T T T T T T T','T T T T T T T T','T T T G T T T T','T T T D T T T T','T T G D G T T T','T T T T T T T T'],
+                pinkBud: ['T T T T T T T T','T T T P P T T T','T T P P P P T T','T T T P P T T T','T T T G T T T T','T T T D T T T T','T T G D G T T T','T T T T T T T T'],
+                pinkBloom: ['T T P P P T T T','T P P W P P T T','T P W Y W P T T','T P P W P P T T','T T P P P T T T','T T T D T T T T','T T T D T T T T','T T G D G T T T'],
+                yellowBud: ['T T T T T T T T','T T T Y Y T T T','T T Y Y Y Y T T','T T T Y Y T T T','T T T G T T T T','T T T D T T T T','T T G D G T T T','T T T T T T T T'],
+                yellowBloom: ['T T Y Y Y T T T','T Y Y W Y Y T T','T Y W P W Y T T','T Y Y W Y Y T T','T T Y Y Y T T T','T T T D T T T T','T T T D T T T T','T T G D G T T T'],
+                berryBud: ['T T T T T T T T','T T T T T T T T','T T T D D T T T','T T T G R T T T','T T T G T T T T','T T G D G T T T','T D G G G D T T','T T T T T T T T'],
+                berryBloom: ['T T T D D T T T','T T D R R D T T','T T R W R R T T','T T R R R T T T','T T T D T T T T','T T G D G T T T','T D G G G D T T','T T T T T T T T']
+            }
+        };
+
+        function drawSprite(spriteArray, xPos, yPos) {
+            for (let r = 0; r < 8; r++) {
+                const rowPixels = spriteArray[r].split(' ');
+                for (let c = 0; c < 8; c++) {
+                    if (rowPixels[c] !== 'T') {
+                        ctx.fillStyle = colors[rowPixels[c]];
+                        ctx.fillRect(Math.floor(xPos + c*PIXEL_SCALE), Math.floor(yPos + r*PIXEL_SCALE), PIXEL_SCALE, PIXEL_SCALE);
+                    }
+                }
+            }
+        }
+
+        const keys = { up: false, down: false, left: false, right: false };
+        window.addEventListener('keydown', (e) => {
+            if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight","KeyW","KeyS","KeyA","KeyD","Digit1","Digit2","Digit3","Digit4","Digit5"].includes(e.code)) e.preventDefault();
+            if (e.code === 'ArrowUp' || e.code === 'KeyW') keys.up = true;
+            if (e.code === 'ArrowDown' || e.code === 'KeyS') keys.down = true;
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = true;
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = true;
+            
+            if (e.code === 'Digit1') selectTool(0);
+            if (e.code === 'Digit2') selectTool(1);
+            if (e.code === 'Digit3') selectTool(2);
+            if (e.code === 'Digit4') selectTool(3);
+            if (e.code === 'Digit5') selectTool(4);
+        });
+        window.addEventListener('keyup', (e) => {
+            if (e.code === 'ArrowUp' || e.code === 'KeyW') keys.up = false;
+            if (e.code === 'ArrowDown' || e.code === 'KeyS') keys.down = false;
+            if (e.code === 'ArrowLeft' || e.code === 'KeyA') keys.left = false;
+            if (e.code === 'ArrowRight' || e.code === 'KeyD') keys.right = false;
+        });
+
+        function bindBtn(id, key) {
+            const btn = document.getElementById(id);
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key]=true; });
+            btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[key]=false; });
+            btn.addEventListener('mousedown', (e) => { e.preventDefault(); keys[key]=true; });
+            btn.addEventListener('mouseup', (e) => { e.preventDefault(); keys[key]=false; });
+        }
+        bindBtn('btn-up', 'up'); bindBtn('btn-down', 'down'); bindBtn('btn-left', 'left'); bindBtn('btn-right', 'right');
+
+        function performActionAt(gX, gY) {
+            if (gX < 0 || gY < 0 || gX >= CANVAS_W/TILE_SIZE || gY >= CANVAS_H/TILE_SIZE) return;
+
+            let tileKey = `${gX},${gY}`;
+            let tile = grid.get(tileKey) || { state: 'grass', plant: null };
+            let tool = tools[currentTool];
+
+            if (tile.plant && tile.plant.stage === 2) {
+                sounds.harvest();
+                tile.plant = null;
+                tile.state = 'tilled';
+                grid.set(tileKey, tile);
+                
+                score++;
+                scoreEl.innerText = score;
+                particles.push({ x: gX*TILE_SIZE+8, y: gY*TILE_SIZE, alpha: 1.0, text: '+1' });
+
+                if (score === 5 && !dialogueTriggered) {
+                    dialogueBox.style.display = 'block';
+                    dialogueTriggered = true;
+                }
+                return;
+            }
+
+            if (tool === 'hoe' && tile.state === 'grass') {
+                sounds.till();
+                tile.state = 'tilled';
+                grid.set(tileKey, tile);
+            }
+            else if (tool === 'water' && tile.state === 'tilled') {
+                sounds.water();
+                tile.state = 'watered';
+                grid.set(tileKey, tile);
+            }
+            else if (tool.startsWith('seed_') && (tile.state === 'tilled' || tile.state === 'watered') && !tile.plant) {
+                sounds.plant();
+                let pType = tool.split('_')[1];
+                tile.plant = { type: pType, stage: 0, timer: 0 };
+                grid.set(tileKey, tile);
+            } else {
+                sounds.error();
+            }
+        }
+
+        function update() {
+            let dx = 0, dy = 0;
+            if (keys.up) { dy -= player.speed; player.direction = 'up'; }
+            if (keys.down) { dy += player.speed; player.direction = 'down'; }
+            if (keys.left) { dx -= player.speed; player.direction = 'left'; }
+            if (keys.right) { dx += player.speed; player.direction = 'right'; }
+
+            if (dx !== 0 && dy !== 0) { dx *= 0.7071; dy *= 0.7071; }
+            
+            player.isMoving = (dx !== 0 || dy !== 0);
+            player.x = Math.max(0, Math.min(CANVAS_W - TILE_SIZE, player.x + dx));
+            player.y = Math.max(0, Math.min(CANVAS_H - TILE_SIZE, player.y + dy));
+
+            if (player.isMoving) {
+                player.animTimer++;
+                if (player.animTimer % 12 === 0) player.animFrame = (player.animFrame + 1) % 3; 
+            } else {
+                player.animFrame = 0;
+            }
+
+            grid.forEach((tile, key) => {
+                if (tile.plant && tile.plant.stage < 2 && tile.state === 'watered') {
+                    tile.plant.timer++;
+                    if (tile.plant.timer > 480) {
+                        tile.plant.stage++;
+                        tile.plant.timer = 0;
+                        tile.state = 'tilled'; 
+                    }
+                }
+            });
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                particles[i].y -= 0.8;
+                particles[i].alpha -= 0.02;
+                if (particles[i].alpha <= 0) particles.splice(i, 1);
+            }
+        }
+
+        function render() {
+            ctx.fillStyle = '#7bcf5c';
+            ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+
+            ctx.fillStyle = '#6ab84f';
+            for (let i = 0; i < 30; i++) {
+                ctx.fillRect((i * 73) % CANVAS_W, (i * 47) % CANVAS_H, 4, 8);
+            }
+
+            grid.forEach((tile, key) => {
+                let coords = key.split(',');
+                let tx = parseInt(coords[0]) * TILE_SIZE;
+                let ty = parseInt(coords[1]) * TILE_SIZE;
+
+                if (tile.state === 'tilled') drawSprite(sprites.dirt.tilled, tx, ty);
+                else if (tile.state === 'watered') drawSprite(sprites.dirt.watered, tx, ty);
+
+                if (tile.plant) {
+                    let pSprite;
+                    if (tile.plant.stage === 0) pSprite = sprites.plants.sprout;
+                    else if (tile.plant.stage === 1) pSprite = tile.plant.type === 'pink' ? sprites.plants.pinkBud : (tile.plant.type === 'yellow' ? sprites.plants.yellowBud : sprites.plants.berryBud);
+                    else if (tile.plant.stage === 2) pSprite = tile.plant.type === 'pink' ? sprites.plants.pinkBloom : (tile.plant.type === 'yellow' ? sprites.plants.yellowBloom : sprites.plants.berryBloom);
+                    drawSprite(pSprite, tx, ty);
+                }
+            });
+
+            if (isHoverValid) {
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            } else {
+                ctx.strokeStyle = 'rgba(255, 107, 129, 0.4)'; 
+            }
+            ctx.lineWidth = 2;
+            ctx.strokeRect(hoverGridX * TILE_SIZE, hoverGridY * TILE_SIZE, TILE_SIZE, TILE_SIZE);
+
+            drawSprite(sprites.player[player.direction][player.animFrame], player.x, player.y);
+
+            particles.forEach(p => {
+                ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha})`;
+                ctx.font = 'bold 20px "VT323", monospace';
+                ctx.shadowColor = '#000'; ctx.shadowBlur = 4;
+                ctx.fillText(p.text, p.x, p.y);
+                ctx.shadowBlur = 0; 
+            });
+        }
+
+        function gameLoop() {
+            update();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+        requestAnimationFrame(gameLoop);
+    </script>
+</body>
+</html>
